@@ -1,0 +1,7 @@
+# Never commit anything derived from the calendar itself.
+*.token
+*token*.json
+.cache/
+node_modules/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calendar</title>
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src 'self';
+    style-src 'self';
+    img-src 'self' data:;
+    connect-src https://graph.microsoft.com https://login.microsoftonline.com;
+    form-action https://login.microsoftonline.com;
+    base-uri 'none';
+  ">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>%F0%9F%97%93</text></svg>">
+</head>
+<body>
+  <main class="wrap">
+    <header class="head">
+      <div class="now">
+        <div id="clock" class="clock">--:--</div>
+        <div id="today" class="today">&nbsp;</div>
+      </div>
+      <div class="actions">
+        <button id="privacy-btn" class="ghost" type="button" title="Blur meeting subjects">Blur</button>
+        <button id="refresh-btn" class="ghost" type="button" title="Refresh now">Refresh</button>
+        <button id="auth-btn" class="ghost" type="button" hidden>Sign in</button>
+      </div>
+    </header>
+
+    <!-- Signed out / error / loading all render here -->
+    <section id="status" class="status" hidden>
+      <p id="status-msg"></p>
+      <button id="status-action" class="primary" type="button" hidden>Sign in with work account</button>
+    </section>
+
+    <!-- The headline: what's next -->
+    <section id="next" class="next" hidden>
+      <div class="next-when">
+        <span id="next-countdown" class="countdown">--</span>
+        <span id="next-time" class="next-time"></span>
+      </div>
+      <h1 id="next-subject" class="next-subject">&nbsp;</h1>
+      <div class="next-meta">
+        <span id="next-location" class="loc"></span>
+        <a id="next-join" class="join" href="#" target="_blank" rel="noopener noreferrer" hidden>Join</a>
+      </div>
+    </section>
+
+    <!-- Everything after that -->
+    <section id="agenda-wrap" class="agenda-wrap" hidden>
+      <h2 class="agenda-head">Coming up</h2>
+      <ol id="agenda" class="agenda"></ol>
+    </section>
+
+    <footer class="foot">
+      <span id="updated" class="updated"></span>
+      <button id="signout-btn" class="linkish" type="button" hidden>Sign out</button>
+    </footer>
+  </main>
+
+  <script src="vendor/msal-browser.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

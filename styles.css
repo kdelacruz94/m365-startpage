@@ -1,0 +1,232 @@
+/* Everforest Dark Hard -- same palette as the YASB bar, so the two surfaces
+   read as one system. */
+:root {
+  --bg-dim: #1e2326;
+  --bg0: #272e33;
+  --bg1: #2e383c;
+  --bg2: #374145;
+  --bg3: #414b50;
+
+  --fg: #d3c6aa;
+  --grey1: #859289;
+  --grey2: #9da9a0;
+
+  --green: #a7c080;
+  --aqua: #83c092;
+  --blue: #7fbbb3;
+  --yellow: #dbbc7f;
+  --orange: #e69875;
+  --red: #e67e80;
+  --purple: #d699b6;
+
+  --radius: 14px;
+  --radius-sm: 10px;
+  --mono: "Maple Mono NF", "JetBrainsMono Nerd Font", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg-dim);
+  color: var(--fg);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 8vh 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---- header ---- */
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.clock {
+  font-family: var(--mono);
+  font-size: clamp(38px, 7vw, 60px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.today {
+  margin-top: 6px;
+  color: var(--grey2);
+  font-size: 14px;
+}
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+button {
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.ghost {
+  background: transparent;
+  border: 1px solid var(--bg3);
+  color: var(--grey2);
+  padding: 6px 12px;
+}
+.ghost:hover { border-color: var(--green); color: var(--green); }
+.ghost[aria-pressed="true"] { border-color: var(--green); color: var(--bg-dim); background: var(--green); }
+
+.primary {
+  background: var(--green);
+  border: 1px solid var(--green);
+  color: var(--bg-dim);
+  font-weight: 600;
+  padding: 10px 18px;
+}
+.primary:hover { background: var(--aqua); border-color: var(--aqua); }
+
+.linkish {
+  background: none;
+  border: none;
+  color: var(--grey1);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.linkish:hover { color: var(--red); }
+
+/* ---- status ---- */
+.status {
+  background: var(--bg0);
+  border: 1px solid var(--bg2);
+  border-radius: var(--radius);
+  padding: 28px;
+  text-align: center;
+}
+.status p { margin: 0 0 16px; color: var(--grey2); line-height: 1.6; }
+.status.error { border-color: var(--red); }
+.status.error p { color: var(--red); }
+
+/* ---- next event ---- */
+.next {
+  background: var(--bg0);
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  padding: 26px 28px;
+}
+.next.none { border-color: var(--bg2); }
+.next-when {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.countdown {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.countdown.soon { color: var(--orange); }
+.countdown.now { color: var(--red); }
+.next-time { font-family: var(--mono); font-size: 14px; color: var(--grey1); }
+.next-subject {
+  margin: 10px 0 0;
+  font-size: clamp(22px, 3.4vw, 30px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+.next-meta {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.loc { color: var(--grey2); font-size: 14px; }
+.join {
+  color: var(--bg-dim);
+  background: var(--blue);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+}
+.join:hover { background: var(--aqua); }
+
+/* ---- agenda ---- */
+.agenda-head {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--grey1);
+}
+.agenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.agenda li {
+  display: grid;
+  grid-template-columns: 132px 1fr auto;
+  gap: 14px;
+  align-items: baseline;
+  padding: 11px 14px;
+  background: var(--bg0);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+.agenda li:hover { border-color: var(--bg3); }
+.agenda li.daybreak { background: transparent; border: none; padding: 14px 0 2px; }
+.agenda .when { font-family: var(--mono); font-size: 13px; color: var(--aqua); white-space: nowrap; }
+.agenda .what { font-size: 15px; }
+.agenda .where { font-size: 12px; color: var(--grey1); text-align: right; }
+.agenda .daylabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+.agenda li.cancelled .what { text-decoration: line-through; color: var(--grey1); }
+
+/* ---- footer ---- */
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--grey1);
+}
+
+/* ---- privacy blur ----
+   Subjects/locations stay blurred until hover or keyboard focus. */
+body.privacy .next-subject,
+body.privacy .agenda .what,
+body.privacy .agenda .where,
+body.privacy .loc {
+  filter: blur(7px);
+  transition: filter .12s ease;
+}
+body.privacy .next-subject:hover,
+body.privacy .agenda li:hover .what,
+body.privacy .agenda li:hover .where,
+body.privacy .loc:hover,
+body.privacy:focus-within .next-subject,
+body.privacy:focus-within .agenda .what {
+  filter: none;
+}
+
+@media (max-width: 620px) {
+  .wrap { padding-top: 5vh; }
+  .agenda li { grid-template-columns: 1fr; gap: 4px; }
+  .agenda .where { text-align: left; }
+}
