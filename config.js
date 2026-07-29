@@ -6,7 +6,7 @@
 // still only admitting accounts from tenants the app is registered in.
 // ---------------------------------------------------------------------------
 window.CAL_CONFIG = {
-  clientId: "PASTE-APPLICATION-CLIENT-ID-HERE",
+  clientId: "e3fe964c-6413-4d71-aefb-8de528e548f3",
 
   // Use "organizations" for work/school accounts. Swap for your tenant GUID if
   // you'd rather pin it explicitly (and keep the repo private).
