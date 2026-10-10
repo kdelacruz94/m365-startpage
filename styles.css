@@ -3,7 +3,6 @@
 :root {
   --bg-dim: #1e2326;
   --bg0: #272e33;
-  --bg1: #2e383c;
   --bg2: #374145;
   --bg3: #414b50;
 
@@ -17,7 +16,6 @@
   --yellow: #dbbc7f;
   --orange: #e69875;
   --red: #e67e80;
-  --purple: #d699b6;
 
   --radius: 14px;
   --radius-sm: 10px;
@@ -196,7 +194,6 @@ button {
   text-transform: uppercase;
   color: var(--yellow);
 }
-.agenda li.cancelled .what { text-decoration: line-through; color: var(--grey1); }
 
 /* ---- footer ---- */
 .foot {

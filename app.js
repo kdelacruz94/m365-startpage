@@ -198,7 +198,7 @@
       endDateTime: end.toISOString(),
       $orderby: "start/dateTime",
       $top: "60",
-      $select: "subject,start,end,location,isAllDay,isCancelled,onlineMeeting,onlineMeetingUrl,showAs",
+      $select: "subject,start,end,location,isAllDay,isCancelled,onlineMeeting,onlineMeetingUrl",
     });
 
     const res = await fetch(`${GRAPH}/me/calendarView?${params}`, {
