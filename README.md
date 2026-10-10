@@ -61,6 +61,15 @@ approval. Send them this README.
 
 ## 2. Configure
 
+**External YASB prerequisites:** before configuring or running the desktop
+widget, separately provision `calendar_config.json`, `calendar_login.py`, and
+`calendar_next.py` in `%USERPROFILE%\.config\yasb\scripts\`. These machine-local
+files are not supplied by cloning `m365-startpage` or installing
+`terminal-config`. See the authoritative
+[Windows desktop bar setup documentation](https://github.com/kdelacruz94/terminal-config/blob/main/yasb/README.md)
+for the deployment boundary. Keep credentials, token caches, meeting data and
+unsanitized machine-local scripts out of this repository.
+
 Paste the client ID into **two** places:
 
 - `config.js` → `clientId`
@@ -93,6 +102,9 @@ is the realistic option there.
 ---
 
 ## 4. YASB widget
+
+After separately provisioning the external files listed in **2. Configure**,
+run the machine-local login script:
 
 ```sh
 py -3.14 %USERPROFILE%\.config\yasb\scripts\calendar_login.py
