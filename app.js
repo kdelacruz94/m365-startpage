@@ -40,6 +40,8 @@
   let account = null;
   let events = [];          // in-memory only
   let lastFetch = null;
+  let calendarReady = false;
+  let accessGeneration = 0;
 
   // ---------------------------------------------------------------- helpers
   const pad = (n) => String(n).padStart(2, "0");
@@ -171,23 +173,47 @@
   }
 
   function signOut() {
-    events = [];
+    invalidateCalendar();
+    showSignIn();
     if (pca && account) {
       pca.logoutRedirect({ account }).catch(() => {});
     }
+    account = null;
+  }
+
+  function invalidateCalendar() {
+    calendarReady = false;
+    accessGeneration++;
+    events = [];
+    lastFetch = null;
+    el.next.hidden = true;
+    el.agendaWrap.hidden = true;
+    el.countdown.textContent = "";
+    el.nextTime.textContent = "";
+    el.subject.textContent = "";
+    el.location.textContent = "";
+    el.join.hidden = true;
+    el.join.removeAttribute("href");
+    el.agenda.textContent = "";
+    el.updated.textContent = "";
+    el.authBtn.hidden = false;
+    el.signoutBtn.hidden = true;
+  }
+
+  function showSignIn() {
+    showStatus("Sign in with your work account to see your calendar.", {
+      action: { label: "Sign in with work account", fn: signIn },
+    });
   }
 
   // ------------------------------------------------------------------ graph
   async function fetchEvents() {
+    const generation = accessGeneration;
     const token = await getToken();
+    if (generation !== accessGeneration) return;
     if (!token) {
-      el.next.hidden = true;
-      el.agendaWrap.hidden = true;
-      el.authBtn.hidden = false;
-      el.signoutBtn.hidden = true;
-      showStatus("Sign in with your work account to see your calendar.", {
-        action: { label: "Sign in with work account", fn: signIn },
-      });
+      invalidateCalendar();
+      showSignIn();
       return;
     }
 
@@ -212,9 +238,12 @@
         },
       });
 
+      if (generation !== accessGeneration) return;
       if (!res.ok) {
         const body = await res.text().catch(() => "");
+        if (generation !== accessGeneration) return;
         if (res.status === 401 || res.status === 403) {
+          invalidateCalendar();
           showStatus(
             `Graph refused the request (${res.status}). The app may be missing Calendars.Read consent.`,
             { action: { label: "Sign in again", fn: signIn }, isError: true }
@@ -225,11 +254,13 @@
       }
 
       const data = await res.json();
+      // A page started before access was lost must not revive its content.
+      if (generation !== accessGeneration) return;
       fetched.push(...(data.value || []));
       url = data["@odata.nextLink"];
     }
 
-    // Publish only a complete query, keeping the previous agenda on failure.
+    // Publish only a complete query; access denial clears the previous agenda.
     events = fetched
       .map((e) => ({
         subject: e.subject || "(no subject)",
@@ -244,6 +275,7 @@
       .sort((a, b) => a.start - b.start);
 
     lastFetch = new Date();
+    calendarReady = true;
     hideStatus();
     el.authBtn.hidden = true;
     el.signoutBtn.hidden = false;
@@ -259,6 +291,7 @@
   }
 
   function render() {
+    if (!calendarReady) return;
     const ev = nextEvent();
 
     if (!ev) {

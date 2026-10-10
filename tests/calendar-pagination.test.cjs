@@ -23,6 +23,7 @@ function element() {
     appendChild(child) { this.children.push(child); },
     append(...children) { this.children.push(...children); },
     setAttribute() {},
+    removeAttribute(name) { delete this[name]; },
   };
 }
 
@@ -127,8 +128,15 @@ for (const status of [500, 403]) {
     );
     await elements.get("refresh-btn").onclick();
     intervals.find((interval) => interval.ms === 30000).fn();
-    assert.equal(elements.get("next-subject").textContent, "Synthetic previous");
-    assert.equal(elements.get("updated").textContent, updated);
+    if (status === 403) {
+      assert.equal(elements.get("next").hidden, true, "access denial hides cached content");
+      assert.equal(elements.get("agenda-wrap").hidden, true);
+      assert.equal(elements.get("next-subject").textContent, "");
+      assert.equal(elements.get("updated").textContent, "");
+    } else {
+      assert.equal(elements.get("next-subject").textContent, "Synthetic previous");
+      assert.equal(elements.get("updated").textContent, updated);
+    }
     assert.equal(elements.get("status").hidden, false);
     assert.match(elements.get("status-msg").textContent, /Graph/);
   });

@@ -99,6 +99,11 @@ an extension (Zen/Firefox: "New Tab Override"; Chromium: an extension using
 work laptop, both are likely your employer's call, so homepage or a pinned tab
 is the realistic option there.
 
+**Offline regression checks:** with Node.js installed, run
+`node --test tests/auth-render-state.test.cjs tests/calendar-pagination.test.cjs`. These execute the app with
+synthetic DOM, authentication and calendar responses; no account or network
+access is needed.
+
 ---
 
 ## 4. YASB widget
