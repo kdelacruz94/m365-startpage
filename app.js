@@ -201,28 +201,36 @@
       $select: "subject,start,end,location,isAllDay,isCancelled,onlineMeeting,onlineMeetingUrl",
     });
 
-    const res = await fetch(`${GRAPH}/me/calendarView?${params}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // Ask Graph to hand back UTC so we can localise consistently.
-        Prefer: 'outlook.timezone="UTC"',
-      },
-    });
+    const fetched = [];
+    let url = `${GRAPH}/me/calendarView?${params}`;
+    while (url) {
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Ask Graph to hand back UTC so we can localise consistently.
+          Prefer: 'outlook.timezone="UTC"',
+        },
+      });
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      if (res.status === 401 || res.status === 403) {
-        showStatus(
-          `Graph refused the request (${res.status}). The app may be missing Calendars.Read consent.`,
-          { action: { label: "Sign in again", fn: signIn }, isError: true }
-        );
-        return;
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        if (res.status === 401 || res.status === 403) {
+          showStatus(
+            `Graph refused the request (${res.status}). The app may be missing Calendars.Read consent.`,
+            { action: { label: "Sign in again", fn: signIn }, isError: true }
+          );
+          return;
+        }
+        throw new Error(`Graph ${res.status}: ${body.slice(0, 200)}`);
       }
-      throw new Error(`Graph ${res.status}: ${body.slice(0, 200)}`);
+
+      const data = await res.json();
+      fetched.push(...(data.value || []));
+      url = data["@odata.nextLink"];
     }
 
-    const data = await res.json();
-    events = (data.value || [])
+    // Publish only a complete query, keeping the previous agenda on failure.
+    events = fetched
       .map((e) => ({
         subject: e.subject || "(no subject)",
         start: parseGraphDate(e.start),
