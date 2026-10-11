@@ -42,6 +42,10 @@
   let lastFetch = null;
   let calendarReady = false;
   let accessGeneration = 0;
+  let renderedEvents = null;
+  let renderedNext = null;
+  let renderedDay = null;
+  let renderedRestCount = 0;
 
   // ---------------------------------------------------------------- helpers
   const pad = (n) => String(n).padStart(2, "0");
@@ -185,6 +189,8 @@
     calendarReady = false;
     accessGeneration++;
     events = [];
+    renderedEvents = null;
+    renderedNext = null;
     lastFetch = null;
     el.next.hidden = true;
     el.agendaWrap.hidden = true;
@@ -207,8 +213,7 @@
   }
 
   // ------------------------------------------------------------------ graph
-  async function fetchEvents() {
-    const generation = accessGeneration;
+  async function fetchEvents(generation) {
     const token = await getToken();
     if (generation !== accessGeneration) return;
     if (!token) {
@@ -290,15 +295,29 @@
     return events.find((e) => !e.allDay && e.end && e.end.getTime() > now) || null;
   }
 
-  function render() {
+  function updateCountdown(ev) {
+    const ms = ev ? ev.start.getTime() - Date.now() : null;
+    el.countdown.textContent = !ev ? "clear" : ms <= 0 ? "in progress" : fmtRelative(ms);
+    el.countdown.className =
+      "countdown" + (ev && ms <= 0 ? " now" : ev && ms <= 10 * 60000 ? " soon" : "");
+  }
+
+  function render(countdownOnly = false) {
     if (!calendarReady) return;
     const ev = nextEvent();
+    const rest = events.filter((e) => e !== ev && e.end && e.end.getTime() > Date.now());
+    const day = new Date().toDateString();
+    updateCountdown(ev);
+    if (countdownOnly && renderedEvents === events && renderedNext === ev &&
+        renderedDay === day && renderedRestCount === rest.length) return;
+    renderedEvents = events;
+    renderedNext = ev;
+    renderedDay = day;
+    renderedRestCount = rest.length;
 
     if (!ev) {
       el.next.hidden = false;
       el.next.classList.add("none");
-      el.countdown.textContent = "clear";
-      el.countdown.className = "countdown";
       el.nextTime.textContent = "";
       el.subject.textContent = `Nothing scheduled in the next ${CFG.lookaheadDays} days`;
       el.location.textContent = "";
@@ -306,12 +325,6 @@
     } else {
       el.next.hidden = false;
       el.next.classList.remove("none");
-      const ms = ev.start.getTime() - Date.now();
-      const started = ms <= 0;
-
-      el.countdown.textContent = started ? "in progress" : fmtRelative(ms);
-      el.countdown.className =
-        "countdown" + (started ? " now" : ms <= 10 * 60000 ? " soon" : "");
       el.nextTime.textContent = `${fmtTime(ev.start)} – ${ev.end ? fmtTime(ev.end) : ""}`;
       el.subject.textContent = ev.subject;
       el.location.textContent = ev.location;
@@ -320,7 +333,6 @@
     }
 
     // Agenda: everything after the headline event.
-    const rest = events.filter((e) => e !== ev && e.end && e.end.getTime() > Date.now());
     el.agenda.textContent = "";
     let lastDay = null;
 
@@ -363,9 +375,11 @@
   }
 
   async function refresh() {
+    const generation = ++accessGeneration;
     try {
-      await fetchEvents();
+      await fetchEvents(generation);
     } catch (e) {
+      if (generation !== accessGeneration) return;
       console.error(e);
       showStatus(`Couldn't load the calendar: ${e.message}`, {
         action: { label: "Try again", fn: refresh },
@@ -379,7 +393,7 @@
     setInterval(tickClock, 1000);
 
     // Countdown drifts if we only redraw on fetch.
-    setInterval(() => { if (events.length) render(); }, 30000);
+    setInterval(() => { if (events.length) render(true); }, 30000);
 
     const savedPrivacy = (() => {
       try { return localStorage.getItem("cal.privacy") === "1"; } catch { return false; }
@@ -399,7 +413,7 @@
     // A start page often sits in a background tab for hours; catch up on focus.
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
-        render();
+        render(true);
         if (!lastFetch || Date.now() - lastFetch > CFG.refreshIntervalMs) refresh();
       }
     });

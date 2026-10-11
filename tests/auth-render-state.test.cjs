@@ -32,7 +32,11 @@ async function boot({ signedIn = true } = {}) {
   const elements = new Map();
   const timers = new Map();
   const listeners = new Map();
-  const state = { tokenAvailable: signedIn, graphStatus: 200 };
+  const state = { tokenAvailable: signedIn, graphStatus: 200, now: new Date(2026, 9, 11, 12).getTime(), created: 0 };
+  class Clock extends Date {
+    constructor(...args) { super(...(args.length ? args : [state.now])); }
+    static now() { return state.now; }
+  }
   class InteractionRequiredAuthError extends Error {}
   class PublicClientApplication {
     async initialize() {}
@@ -51,7 +55,7 @@ async function boot({ signedIn = true } = {}) {
       if (!elements.has(id)) elements.set(id, element());
       return elements.get(id);
     },
-    createElement: element,
+    createElement() { state.created++; return element(); },
     addEventListener: (name, callback) => listeners.set(name, callback),
   };
   const context = vm.createContext({
@@ -66,9 +70,10 @@ async function boot({ signedIn = true } = {}) {
     msal: { PublicClientApplication, InteractionRequiredAuthError },
     localStorage: { getItem() { return null; }, setItem() {} },
     setInterval: (callback, ms) => timers.set(ms, callback),
+    Date: Clock,
     URLSearchParams,
     console,
-    fetch: async () => ({
+    fetch: async () => state.fetch ? state.fetch() : ({
       ok: state.graphStatus === 200,
       status: state.graphStatus,
       text: async () => '',
@@ -76,8 +81,8 @@ async function boot({ signedIn = true } = {}) {
         if (state.beforeJson) await state.beforeJson;
         return { value: [1, 2].map((offset) => ({
           subject: `Synthetic event ${offset}`,
-          start: { dateTime: new Date(Date.now() + offset * 3600000).toISOString() },
-          end: { dateTime: new Date(Date.now() + (offset + 1) * 3600000).toISOString() },
+          start: { dateTime: new Date(state.now + offset * 3600000).toISOString() },
+          end: { dateTime: new Date(state.now + (offset + 1) * 3600000).toISOString() },
           location: { displayName: 'Synthetic location' },
           onlineMeetingUrl: 'https://example.invalid/synthetic',
         })) };
@@ -91,6 +96,7 @@ async function boot({ signedIn = true } = {}) {
     state,
     el: (id) => elements.get(id),
     tick: () => timers.get(30000)(),
+    periodicRefresh: () => timers.get(300000)(),
     async visible() {
       listeners.get('visibilitychange')();
       await new Promise(setImmediate);
@@ -174,4 +180,101 @@ test('an in-flight response cannot restore content after sign-out', async () => 
   await pending;
   assertHidden(app);
   assert.equal(app.el('next-subject').textContent, '');
+});
+
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+
+function response(subject, now = new Date(2026, 9, 11, 12).getTime()) {
+  return { ok: true, json: async () => ({ value: [{
+    subject,
+    start: { dateTime: new Date(now + 3600000).toISOString() },
+    end: { dateTime: new Date(now + 7200000).toISOString() },
+  }] }) };
+}
+
+for (const trigger of ['refresh', 'periodicRefresh', 'visible']) {
+ test(`newer ${trigger} wins when an older response arrives last`, async () => {
+  const app = await boot();
+  const old = deferred();
+  app.state.fetch = () => old.promise;
+  const pending = app.refresh();
+  await new Promise(setImmediate);
+  app.state.fetch = () => response('Newest synthetic event');
+  app.state.now += 300001;
+  await app[trigger]();
+  old.resolve(response('Old synthetic event'));
+  await pending;
+  assert.equal(app.el('next-subject').textContent, 'Newest synthetic event');
+ });
+}
+
+for (const failure of ['network', 'access']) {
+  test(`superseded ${failure} failure cannot change newer calendar state`, async () => {
+    const app = await boot();
+    const old = deferred();
+    app.state.fetch = () => old.promise;
+    const pending = app.refresh();
+    await new Promise(setImmediate);
+    app.state.fetch = () => response('Newest synthetic event');
+    await app.refresh();
+    if (failure === 'network') old.reject(new Error('synthetic network failure'));
+    else old.resolve({ ok: false, status: 403, text: async () => '' });
+    await pending;
+    assert.equal(app.el('next-subject').textContent, 'Newest synthetic event');
+    assert.equal(app.el('status').hidden, true);
+  });
+}
+
+test('countdown ticks preserve agenda nodes and advance countdown styling', async () => {
+  const app = await boot();
+  const nodes = [...app.el('agenda').children];
+  const created = app.state.created;
+  app.state.now += 51 * 60000;
+  app.tick();
+  assert.equal(app.el('next-countdown').textContent, 'in 9m');
+  assert.equal(app.el('next-countdown').className, 'countdown soon');
+  assert.deepEqual(app.el('agenda').children, nodes);
+  assert.equal(app.state.created, created);
+  app.state.now += 10 * 60000;
+  app.tick();
+  assert.equal(app.el('next-countdown').textContent, 'in progress');
+  assert.equal(app.el('next-countdown').className, 'countdown now');
+  assert.equal(app.state.created, created);
+});
+
+test('expiry, day rollover and fresh responses still rebuild calendar content', async () => {
+  const app = await boot();
+  app.state.now += 121 * 60000;
+  app.tick();
+  assert.equal(app.el('next-subject').textContent, 'Synthetic event 2');
+  const midnight = new Date(app.state.now);
+  midnight.setHours(24, 0, 0, 0);
+  app.state.now = midnight.getTime();
+  app.tick();
+  assert.equal(app.el('agenda-wrap').hidden, true);
+  app.state.now = Date.now();
+  await app.refresh();
+  const nodes = [...app.el('agenda').children];
+  await app.refresh();
+  assert.notEqual(app.el('agenda').children[0], nodes[0]);
+});
+
+test('midnight updates day labels without waiting for a refresh', async () => {
+  const app = await boot();
+  const midnight = new Date(app.state.now);
+  midnight.setHours(24, 0, 0, 0);
+  app.state.fetch = () => ({ ok: true, json: async () => ({ value: [1, 2].map((offset) => ({
+    subject: `Synthetic tomorrow ${offset}`,
+    start: { dateTime: new Date(midnight.getTime() + offset * 3600000).toISOString() },
+    end: { dateTime: new Date(midnight.getTime() + (offset + 1) * 3600000).toISOString() },
+  })) }) });
+  await app.refresh();
+  assert.equal(app.el('agenda').children[0].children[0].textContent, 'Tomorrow');
+  app.state.now = midnight.getTime();
+  app.tick();
+  assert.equal(app.el('agenda').children[0].children[0].textContent, 'Today');
 });
