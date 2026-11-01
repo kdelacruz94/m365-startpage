@@ -126,10 +126,14 @@ If it ever shows `󰀦 cal login`, the cached token is gone — rerun the line a
 
 ## Known wrinkles
 
-- **Zen/Firefox silent renewal.** Total Cookie Protection tends to break MSAL's
-  hidden-iframe token renewal, so the page uses a full redirect for interactive
-  sign-in and may bounce you through Microsoft occasionally. Chromium is
-  smoother here.
+- **Silent renewal needs `frame-src`.** MSAL renews tokens in a hidden iframe
+  to `login.microsoftonline.com`. The page's CSP starts from `default-src 'none'`,
+  so `index.html` lists `frame-src https://login.microsoftonline.com`; without it
+  every browser refuses that iframe once the refresh token lapses (about a day)
+  and you get bounced through a full sign-in. (Earlier notes blamed Firefox
+  Total Cookie Protection; the CSP was the cause.) A transient renewal failure
+  keeps the last agenda and offers **Try again**. Interactive sign-in still uses
+  a full redirect because popups get blocked.
 - **Tokens in `localStorage`.** Standard for SPAs and scoped to read-only
   calendar access, but it does mean a token sits in browser storage on that
   machine. Use **Sign out** on shared machines.

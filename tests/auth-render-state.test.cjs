@@ -43,6 +43,7 @@ async function boot({ signedIn = true } = {}) {
     async handleRedirectPromise() { return null; }
     getAllAccounts() { return signedIn ? [{}] : []; }
     async acquireTokenSilent() {
+      if (state.tokenError) throw state.tokenError;
       if (!state.tokenAvailable) throw new InteractionRequiredAuthError();
       return { accessToken: 'synthetic' };
     }
@@ -138,6 +139,20 @@ test('failed token renewal stays hidden through timer and visibility, then recov
   app.state.tokenAvailable = true;
   await app.refresh();
   assertRestored(app);
+});
+
+test('a transient token error keeps the agenda and offers retry, not sign-in', async () => {
+  const app = await boot();
+  app.state.tokenError = new Error('synthetic iframe timeout');
+  await app.refresh();
+  assertRestored(app);
+  assert.equal(app.el('status').hidden, false);
+  assert.match(app.el('status-msg').textContent, /synthetic iframe timeout/);
+  assert.equal(app.el('status-action').textContent, 'Try again');
+  app.state.tokenError = null;
+  await app.el('status-action').onclick();
+  assertRestored(app);
+  assert.equal(app.el('status').hidden, true);
 });
 
 test('signed-out visibility retains the sign-in state', async () => {
