@@ -128,7 +128,8 @@ If it ever shows `󰀦 cal login`, the cached token is gone — rerun the line a
 
 - **Silent renewal needs `frame-src`.** MSAL renews tokens in a hidden iframe
   to `login.microsoftonline.com`. The page's CSP starts from `default-src 'none'`,
-  so `index.html` lists `frame-src https://login.microsoftonline.com`; without it
+  so `index.html` lists `frame-src 'self' https://login.microsoftonline.com;`
+  to allow both authorization and the same-origin redirect URI. Without it
   every browser refuses that iframe once the refresh token lapses (about a day)
   and you get bounced through a full sign-in. (Earlier notes blamed Firefox
   Total Cookie Protection; the CSP was the cause.) A transient renewal failure
