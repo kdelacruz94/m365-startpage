@@ -156,15 +156,14 @@
         const r = await pca.acquireTokenSilent(request);
         return r.accessToken;
       } catch (e) {
-        // Fall through to interactive below.
-        if (!(e instanceof msal.InteractionRequiredAuthError)) {
-          console.warn("silent token failed:", e);
-        }
+        // Only "interaction required" means sign in again. Anything else
+        // (offline, 5xx, blocked iframe) is transient: let refresh() keep the
+        // agenda and offer a retry.
+        if (!(e instanceof msal.InteractionRequiredAuthError)) throw e;
       }
     }
     if (interactive) {
-      // Redirect rather than popup: popups get blocked, and Firefox-family
-      // storage partitioning makes iframe-based silent renewal unreliable.
+      // Redirect rather than popup: popups get blocked.
       await pca.acquireTokenRedirect(request);
     }
     return null;
