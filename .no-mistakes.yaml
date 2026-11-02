@@ -1,0 +1,2 @@
+# This repo has no CI; tests run locally with node --test.
+no_ci: true
